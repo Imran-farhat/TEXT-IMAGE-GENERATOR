@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+ENV/
+env/
+.Python
+
+# Virtual environment
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs and runtime files
+*.log
+*.sqlite3
+
+# Secrets
+.env
+.env.*
+
+# Generated images
+generated*.png
+
+# app log
+app.log
+
+# OS files
+Thumbs.db
+
+# OneDrive temp
+~$*
