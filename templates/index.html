@@ -3,28 +3,530 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High-Quality AI Image Generator</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>Flux Studio · AI Visual Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: radial-gradient(circle at top, #1a1c54 0%, #050816 55%, #02030b 100%);
+            --panel: rgba(9, 11, 26, 0.85);
+            --border: rgba(255, 255, 255, 0.08);
+            --accent: #7f5af0;
+            --accent-strong: #c084fc;
+            --text-dim: rgba(255, 255, 255, 0.7);
+            --success: #50fa7b;
+            --danger: #ff6b6b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: url('https://www.transparenttextures.com/patterns/asfalt-dark.png');
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        .app-shell {
+            width: min(1200px, 100%);
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        header {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .badge {
+            align-self: flex-start;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(127, 90, 240, 0.15);
+            border: 1px solid rgba(127, 90, 240, 0.35);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent-strong);
+        }
+
+        h1 {
+            font-size: clamp(2.2rem, 5vw, 3.4rem);
+            margin: 0;
+            line-height: 1.1;
+        }
+
+        header p {
+            max-width: 720px;
+            color: var(--text-dim);
+            font-size: 1.05rem;
+            margin: 0;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(18px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+        }
+
+        textarea {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 16px 18px;
+            color: inherit;
+            font-size: 1rem;
+            min-height: 130px;
+            resize: vertical;
+            line-height: 1.5;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: rgba(127, 90, 240, 0.8);
+            box-shadow: 0 0 0 2px rgba(127, 90, 240, 0.2);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        button.primary {
+            flex: 1;
+            min-width: 180px;
+            padding: 14px 22px;
+            border-radius: 14px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            background: linear-gradient(120deg, var(--accent), #4c7dfe);
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        button.primary:disabled {
+            opacity: 0.5;
+            cursor: progress;
+        }
+
+        button.primary:not(:disabled):hover {
+            transform: translateY(-2px);
+        }
+
+        .samples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .chip {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.04);
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: border 0.2s, color 0.2s;
+        }
+
+        .chip:hover {
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .status-bar {
+            border-radius: 14px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            font-size: 0.95rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-strong);
+            box-shadow: 0 0 16px rgba(127, 90, 240, 0.8);
+        }
+
+        .preview-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .preview-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/5;
+            border-radius: 22px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(15, 17, 33, 0.9));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #imageOutput {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        #placeholderState {
+            text-align: center;
+            max-width: 280px;
+            color: var(--text-dim);
+        }
+
+        #placeholderState svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 12px;
+        }
+
+        .meta-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .meta-card {
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .meta-card span {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .copy-btn {
+            border: none;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .history-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .history-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        .history-card {
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .history-card img {
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+        }
+
+        .history-card p {
+            padding: 0 12px 14px;
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .error {
+            color: var(--danger);
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 16px;
+            }
+
+            .panel {
+                padding: 18px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>High-Quality AI Image Generator</h1>
-        <form id="promptForm">
-            <textarea id="promptInput" rows="4" placeholder="Enter your high-quality prompt here (e.g., A majestic dragon flying over a futuristic city, hyperdetailed, professional concept art)"></textarea>
-            <button type="submit" id="generateButton">Generate Image</button>
-        </form>
+    <div class="app-shell">
+        <header>
+            <span class="badge">Flux.1 Schnell · Live</span>
+            <h1>Design striking visuals with a studio-grade AI assistant.</h1>
+            <p>Write natural language scenes and Flux Studio will enhance, optimize, and render them at 1024×1024 in seconds. Perfect for pitch decks, previs, and rapid worldbuilding.</p>
+        </header>
 
-        <div id="results">
-            <h2>Result</h2>
-            <p id="statusMessage">Enter a prompt and click Generate to start.</p>
-            <div id="imageContainer"></div>
-            <div id="promptInfo" class="info-box" style="display: none;">
-                <p><strong>Optimized Prompt Sent to AI:</strong> <span id="enhancedPromptText"></span></p>
-                <p><strong>Model Used:</strong> <span id="modelUsedText"></span></p>
-            </div>
+        <div class="main-grid">
+            <section class="panel form-panel">
+                <form id="promptForm">
+                    <div>
+                        <label for="promptInput">Creative brief</label>
+                        <textarea id="promptInput" placeholder="e.g. Mythic dragon soaring through electric storm clouds, cinematic rim light, IMAX scale"></textarea>
+                    </div>
+
+                    <div class="samples">
+                        <span class="chip" data-prompt="Futuristic fashion editorial, neon rain, volumetric light, detailed fabrics">Neon Couture</span>
+                        <span class="chip" data-prompt="Mythic dragon between floating basalt islands, waterfalls, cinematic dawn light">Floating Isles</span>
+                        <span class="chip" data-prompt="Minimal product render of wireless earbuds, luxurious lighting, marble scene">Product Shot</span>
+                        <span class="chip" data-prompt="Serene Japanese garden at twilight, soft lantern glow, painterly brushwork">Zen Garden</span>
+                    </div>
+
+                    <div class="controls">
+                        <button type="submit" class="primary" id="generateButton">Generate with Flux</button>
+                        <div class="status-bar">
+                            <span class="pulse"></span>
+                            <span id="statusMessage">Standing by.</span>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section class="panel preview-panel">
+                <div class="preview-card">
+                    <div class="preview-frame">
+                        <div id="placeholderState">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3.5 7.5a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4v9a4 4 0 0 1-4 4h-9a4 4 0 0 1-4-4v-9z"/>
+                                <path d="M3.5 15.5 8 11l3 3 4-4 5.5 5.5"/>
+                                <path d="M14 7.5h.01"/>
+                            </svg>
+                            <p>Preview will appear here once Flux finishes rendering.</p>
+                        </div>
+                        <img id="imageOutput" alt="Generated artwork preview" />
+                    </div>
+
+                    <div class="meta-grid">
+                        <div class="meta-card">
+                            <div>
+                                <span>Optimized prompt</span>
+                                <p class="meta-value" id="enhancedPromptText">—</p>
+                            </div>
+                            <button class="copy-btn" type="button" id="copyPrompt" disabled>Copy</button>
+                        </div>
+                        <div class="meta-card">
+                            <div>
+                                <span>Model</span>
+                                <p class="meta-value" id="modelUsedText">black-forest-labs/FLUX.1-schnell</p>
+                            </div>
+                            <a class="copy-btn" id="downloadImage" style="pointer-events: none; opacity: 0.5;" download="flux-studio.png">Download</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
+
+        <section class="panel history-panel">
+            <div class="controls" style="justify-content: space-between;">
+                <div>
+                    <label>Recent renders</label>
+                    <p style="margin: 4px 0 0; color: var(--text-dim); font-size: 0.9rem;">Snapshots are cached locally for this session.</p>
+                </div>
+                <button class="copy-btn" type="button" id="clearHistory">Clear</button>
+            </div>
+            <div class="history-list" id="historyList">
+                <p style="color: var(--text-dim);">Generate a prompt to start a gallery.</p>
+            </div>
+        </section>
     </div>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <script>
+        const form = document.getElementById('promptForm');
+        const promptInput = document.getElementById('promptInput');
+        const generateButton = document.getElementById('generateButton');
+        const statusMessage = document.getElementById('statusMessage');
+        const imageOutput = document.getElementById('imageOutput');
+        const placeholderState = document.getElementById('placeholderState');
+        const enhancedPromptText = document.getElementById('enhancedPromptText');
+        const modelUsedText = document.getElementById('modelUsedText');
+        const copyPromptBtn = document.getElementById('copyPrompt');
+        const downloadImageLink = document.getElementById('downloadImage');
+        const historyList = document.getElementById('historyList');
+        const clearHistoryBtn = document.getElementById('clearHistory');
+
+        const sampleChips = document.querySelectorAll('.chip');
+        sampleChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                promptInput.value = chip.dataset.prompt;
+                promptInput.focus();
+            });
+        });
+
+        copyPromptBtn.addEventListener('click', async () => {
+            const text = enhancedPromptText.textContent;
+            if (!text || text === '—') return;
+            await navigator.clipboard.writeText(text);
+            copyPromptBtn.textContent = 'Copied!';
+            setTimeout(() => (copyPromptBtn.textContent = 'Copy'), 1500);
+        });
+
+        clearHistoryBtn.addEventListener('click', () => {
+            historyList.innerHTML = '<p style="color: var(--text-dim);">History cleared. Generate something new!</p>';
+        });
+
+        function pushHistoryCard(imageSrc, prompt) {
+            const card = document.createElement('div');
+            card.className = 'history-card';
+
+            const img = document.createElement('img');
+            img.src = imageSrc;
+            img.alt = prompt.substring(0, 60) + '...';
+
+            const text = document.createElement('p');
+            text.textContent = prompt;
+
+            card.appendChild(img);
+            card.appendChild(text);
+
+            if (historyList.firstElementChild && historyList.firstElementChild.tagName === 'P') {
+                historyList.innerHTML = '';
+            }
+
+            historyList.prepend(card);
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const prompt = promptInput.value.trim();
+
+            if (!prompt) {
+                statusMessage.textContent = 'Please enter a prompt to begin.';
+                statusMessage.classList.add('error');
+                return;
+            }
+
+            statusMessage.classList.remove('error');
+            statusMessage.textContent = 'Flux is thinking… this usually takes ~45s.';
+            generateButton.disabled = true;
+            placeholderState.style.display = 'flex';
+            imageOutput.style.display = 'none';
+            copyPromptBtn.disabled = true;
+            copyPromptBtn.textContent = 'Copy';
+            downloadImageLink.style.pointerEvents = 'none';
+            downloadImageLink.style.opacity = '0.5';
+            downloadImageLink.removeAttribute('href');
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    statusMessage.textContent = 'Render complete. Explore different prompts for variations!';
+                    imageOutput.src = data.image;
+                    imageOutput.style.display = 'block';
+                    placeholderState.style.display = 'none';
+
+                    enhancedPromptText.textContent = data.enhanced_prompt || prompt;
+                    modelUsedText.textContent = data.model_used || 'black-forest-labs/FLUX.1-schnell';
+                    copyPromptBtn.disabled = false;
+
+                    if (data.image) {
+                        downloadImageLink.href = data.image;
+                        downloadImageLink.style.pointerEvents = 'auto';
+                        downloadImageLink.style.opacity = '1';
+                    }
+
+                    pushHistoryCard(data.image, data.enhanced_prompt || prompt);
+                } else {
+                    statusMessage.innerHTML = `<span class="error">Generation failed:</span> ${data.error || 'Unknown error occurred.'}`;
+                    placeholderState.style.display = 'flex';
+                    imageOutput.style.display = 'none';
+                    if (data.enhanced_prompt) {
+                        enhancedPromptText.textContent = data.enhanced_prompt;
+                        copyPromptBtn.disabled = false;
+                    }
+                    modelUsedText.textContent = data.model_used || 'Error/Fallback Mode';
+                }
+            } catch (error) {
+                statusMessage.innerHTML = `<span class="error">Network error:</span> unable to reach the Flask server.`;
+                console.error(error);
+            } finally {
+                generateButton.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
