@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import requests
 import base64
@@ -210,12 +210,29 @@ def generate_with_huggingface(prompt):
 
 @app.route('/')
 def index():
-    # You would need an index.html file in a 'templates' folder for this to work
-    # Render the frontend UI if present in templates/index.html
+    # Serve the frontend UI. Prefer a `templates/index.html` file so `render_template`
+    # works in normal Flask setups. If that's not present (for example the repo
+    # keeps `index.html` at project root, as in this repo), fall back to serving
+    # the root-level `index.html` via send_from_directory. This makes the server
+    # robust when deployed to platforms that run the Flask app as the runtime.
     try:
-        return render_template('index.html')
+        templates_path = os.path.join(app.root_path, 'templates', 'index.html')
+        root_index_path = os.path.join(app.root_path, 'index.html')
+
+        if os.path.exists(templates_path):
+            logging.info('Serving templates/index.html')
+            return render_template('index.html')
+
+        if os.path.exists(root_index_path):
+            logging.info('Serving root index.html via send_from_directory')
+            # send_from_directory requires the directory, so give the app root
+            return send_from_directory(app.root_path, 'index.html')
+
+        logging.info('No index.html found in templates/ or project root. Returning plain text status.')
+        return "AI Image Generator Backend is Running. Use the /generate endpoint with a POST request."
+
     except Exception as e:
-        logging.exception('Failed to render index.html, falling back to plain text')
+        logging.exception('Unexpected error when attempting to serve index.html')
         return "AI Image Generator Backend is Running. Use the /generate endpoint with a POST request."
 
 

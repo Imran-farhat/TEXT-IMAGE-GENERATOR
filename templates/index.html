@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Quality AI Image Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>High-Quality AI Image Generator</h1>
+        <form id="promptForm">
+            <textarea id="promptInput" rows="4" placeholder="Enter your high-quality prompt here (e.g., A majestic dragon flying over a futuristic city, hyperdetailed, professional concept art)"></textarea>
+            <button type="submit" id="generateButton">Generate Image</button>
+        </form>
+
+        <div id="results">
+            <h2>Result</h2>
+            <p id="statusMessage">Enter a prompt and click Generate to start.</p>
+            <div id="imageContainer"></div>
+            <div id="promptInfo" class="info-box" style="display: none;">
+                <p><strong>Optimized Prompt Sent to AI:</strong> <span id="enhancedPromptText"></span></p>
+                <p><strong>Model Used:</strong> <span id="modelUsedText"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+</body>
+</html>
