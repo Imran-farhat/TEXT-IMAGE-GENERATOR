@@ -1,82 +1,62 @@
-AI Image Generator Backend
+# Flux Image Studio
 
-This repository runs a small Flask backend that enhances prompts and (optionally) calls a Hugging Face SDXL model to generate images. If the external API is unavailable or the token is not valid, the server returns a generated placeholder image for testing.
+A Flask-powered image-generation studio that enhances prompts, calls the **black-forest-labs/FLUX.1-schnell** model on Hugging Face, and serves a polished web UI for running generations, viewing enhanced prompts, and downloading results.
 
-Security and GitHub
+## Features
+- Prompt enhancer that infers subject category & art style, then appends cinematic descriptors + a high-quality safety net.
+- Hugging Face inference client with tuned guidance scale, 1,024×1,024 output, and safe defaults (≤16 inference steps).
+- Modern single-page UI (templates/index.html) with status pulses, prompt history, chips for sample prompts, and download-ready previews.
+- Health check + JSON API suitable for integrating your own frontend or workflows.
 
-- Do NOT commit your Hugging Face token. The project reads `HF_API_TOKEN` from the environment (or from a `.env` file if you choose to use python-dotenv). A `.env.example` is included to show the required variable name. `.env` is ignored by `.gitignore`.
+## Prerequisites
+- Python 3.10+
+- Hugging Face access token with permissions for `black-forest-labs/FLUX.1-schnell`
+- (Optional) `python -m venv .venv` for an isolated environment
 
-Quick start (Windows / PowerShell):
-
-1. Create & activate a virtual environment (optional but recommended):
-
+## Setup (Windows PowerShell)
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-2. Provide your Hugging Face token (one of these methods):
-
-- Temporary (PowerShell session):
-
+## Configure Secrets
+Never commit secrets. Provide `HF_API_TOKEN` via one of the following:
 ```powershell
-$env:HF_API_TOKEN = 'hf_your_token_here'
+# Temporary for current shell
+$env:HF_API_TOKEN = "hf_your_token"
+
+# Or create .env (not tracked) using the provided .env.example template
 ```
 
-- Use a `.env` file locally (don't commit it). Copy the included `.env.example` to `.env` and fill the value. Optionally install `python-dotenv` and load it from your environment or integrate into your startup script.
-
-3. Run the server:
-
+## Run the Server
 ```powershell
 python app.py
 ```
+- Web UI: http://127.0.0.1:5001/
+- Health: http://127.0.0.1:5001/health
 
-4. Health check (open in browser):
-
-http://127.0.0.1:5000/health
-
-5. Example requests
-
-- PowerShell (Invoke-RestMethod):
-
-```powershell
-$body = @{ prompt = "A dramatic sunset over snowy mountains, hyperdetailed, photorealistic" } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:5000/generate -ContentType 'application/json' -Body $body
+## API Usage
+`POST /generate`
+```json
+{ "prompt": "Majestic dragon between floating islands, cinematic" }
 ```
+Response contains:
+- `image`: base64 data URL (PNG)
+- `enhanced_prompt`
+- `model_used`
+- `demo_mode` flag (True if generation fell back to an error state)
 
-- PowerShell demo endpoint (guaranteed offline placeholder — no HF token required):
+Errors return `success: false` and an `error` message (no placeholder image is generated).
 
-```powershell
-$body = @{ prompt = "Demo: colorful abstract" } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:5000/generate_demo -ContentType 'application/json' -Body $body
-```
+## Troubleshooting
+- **401/403** → Token missing or lacks model permission.
+- **InferenceTimeoutError** → Model load slow; retry with simpler prompt or lower resolution.
+- **Large prompts** → Keep text concise to stay under HF request limits.
 
-- curl:
+## Contributing / Publishing
+1. Confirm `git status` is clean and no `.env` or tokens are staged.
+2. Follow standard GitHub flow (`git init`, `git add`, `git commit`, `git push`).
+3. Open an issue/PR for enhancements like persistent history, model switching, or mobile tweaks.
 
-```powershell
-curl -X POST http://127.0.0.1:5000/generate -H "Content-Type: application/json" -d '{ "prompt": "A dramatic sunset over snowy mountains, hyperdetailed, photorealistic" }'
-```
-
-Notes
-
-- If `HF_API_TOKEN` is not set the server will return a demo/placeholder image (this is safer for public repos).
-- The `.env.example` file shows how to name the variable; never commit your real `.env` or tokens.
-- If you prefer logging to a file, configure a writable log path and add it to `.gitignore` (it already ignores `app.log`).
-
-Publishing to GitHub
-
-1. Ensure no secrets are committed (run `git status` and check for `.env`/files containing tokens).
-2. Add a clear README (this file) and a `.gitignore` (included).
-3. Create the repository on GitHub and push:
-
-```powershell
-git init
-git add .
-git commit -m "Initial commit: AI image generator backend"
-git branch -M main
-git remote add origin <your-github-repo-url>
-git push -u origin main
-```
-
-That's it — your repo will not contain any tokens, and users will be instructed to set their own `HF_API_TOKEN`.
+Happy prompting!
